@@ -13,3 +13,4 @@ $RUNCMD
 echo -e "\n[LOG]"
 cat ./logs/vaper_agent.log
 
+#666

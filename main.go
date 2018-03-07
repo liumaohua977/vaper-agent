@@ -5,8 +5,8 @@ import (
     "net"
     "strconv"
     "os" 
-    "os/exec"
-    "bytes"
+    // "os/exec"
+    // "bytes"
     "strings"
     "net/http"
     "io/ioutil"
@@ -16,6 +16,8 @@ import (
     log "github.com/sirupsen/logrus"
     "github.com/satori/go.uuid"
     "github.com/robfig/cron"
+    "github.com/google/gopacket"
+    // "github.com/google/gopacket/pcap"
 )
 
 // shell command 命令行参数
@@ -56,29 +58,29 @@ type NetRelation struct{
     RecevierPort string
 }
 
-func getNetRelations() []NetRelation {
-    // Run tcpdump with parameters shell command
-    command := exec.Command("tcpdump", "-i", "any", "-c","10","-f","-q","-nn")
-    stdOutBuff := bytes.NewBuffer(nil)
-    stdErrBuff := bytes.NewBuffer(nil)
-    command.Stderr = stdErrBuff
-    command.Stdout = stdOutBuff
-    if err := command.Run(); err != nil {
-        log.Error("The tcpdump command can not exec.Run returns: %s\n", err)
-    }
-    CommandOutPut := string(stdOutBuff.Bytes())
-    // log.Debug("tcpdump Stdout:" + CommandOutPut)
-    reg := regexp.MustCompile(`(\d+\.\d+\.\d+\.\d+)\.(\d+)\s*\>\s*(\d+\.\d+\.\d+\.\d+)\.(\d+)`)
-    relations := reg.FindAllString(CommandOutPut, -1)
-    var netRalations []NetRelation
-    for i := 0; i < len(relations); i++ {
-        relaStr := relations[i]
-        netRalation := string2NetRelation(relaStr)
-        netRalations = append(netRalations, netRalation)
-        // log.Debug(netRalation.SendIp+":"+netRalation.sendPort +"->-"+netRalation.receiverIp+":"+netRalation.recevierPort)
-    }
-    return netRalations
-}
+// func getNetRelations() []NetRelation {
+//     // Run tcpdump with parameters shell command
+//     command := exec.Command("tcpdump", "-i", "any", "-c","10","-f","-q","-nn")
+//     stdOutBuff := bytes.NewBuffer(nil)
+//     stdErrBuff := bytes.NewBuffer(nil)
+//     command.Stderr = stdErrBuff
+//     command.Stdout = stdOutBuff
+//     if err := command.Run(); err != nil {
+//         log.Error("The tcpdump command can not exec.Run returns: %s\n", err)
+//     }
+//     CommandOutPut := string(stdOutBuff.Bytes())
+//     // log.Debug("tcpdump Stdout:" + CommandOutPut)
+//     reg := regexp.MustCompile(`(\d+\.\d+\.\d+\.\d+)\.(\d+)\s*\>\s*(\d+\.\d+\.\d+\.\d+)\.(\d+)`)
+//     relations := reg.FindAllString(CommandOutPut, -1)
+//     var netRalations []NetRelation
+//     for i := 0; i < len(relations); i++ {
+//         relaStr := relations[i]
+//         netRalation := string2NetRelation(relaStr)
+//         netRalations = append(netRalations, netRalation)
+//         // log.Debug(netRalation.SendIp+":"+netRalation.sendPort +"->-"+netRalation.receiverIp+":"+netRalation.recevierPort)
+//     }
+//     return netRalations
+// }
 
 func string2NetRelation(relaStr string) NetRelation {
     reg := regexp.MustCompile(`(?P<ip1>\d+\.\d+\.\d+\.\d+)\.(?P<port1>\d+)\s*\>\s*(?P<ip2>\d+\.\d+\.\d+\.\d+)\.(?P<port2>\d+)`)
@@ -102,7 +104,7 @@ func getHostname() string{
     }
 }
 
-// 获取ip列表
+// get ip list
 func get_internal_ips() []string{
     addrs, err := net.InterfaceAddrs()
     if err != nil {
@@ -119,7 +121,7 @@ func get_internal_ips() []string{
     return ips
 }
 
-//主机基础信息
+// host info
 type Host struct{
     Hostname string
     Uid string // unique id for this host
@@ -135,18 +137,6 @@ func getHostMeta(config * Config) Host{
 }
 
 
-type VpMsg struct{
-    Uid string
-    NetRelations []NetRelation
-}
-
-func getVpMsg(config *Config) VpMsg{
-    netRelations := getNetRelations()
-    var vpMsg VpMsg
-    vpMsg.Uid = getUuid(config.Ini.GetValue("basic", "uuid_path"))
-    vpMsg.NetRelations = netRelations
-    return vpMsg
-}
 
 func sendHost(url string, host Host) bool {
     host_bt,_ := json.Marshal(host)
@@ -165,24 +155,24 @@ func sendHost(url string, host Host) bool {
     return true
 }
 
-func sendVpMsg(url string, vpMsg VpMsg) bool {
-    vpMsg_bt,_ := json.Marshal(vpMsg)
-    vpMsg_str := string(vpMsg_bt)
-    payload := strings.NewReader(vpMsg_str)
+// func sendVpMsg(url string, vpMsg VpMsg) bool {
+//     vpMsg_bt,_ := json.Marshal(vpMsg)
+//     vpMsg_str := string(vpMsg_bt)
+//     payload := strings.NewReader(vpMsg_str)
 
-    req, _ := http.NewRequest("POST", url, payload)
-    req.Header.Add("content-type", "application/json")
+//     req, _ := http.NewRequest("POST", url, payload)
+//     req.Header.Add("content-type", "application/json")
 
-    res, err := http.DefaultClient.Do(req)
-    if(err != nil){
-        log.Error("send host info fail.detail:"+err.Error())
-    }
-    defer res.Body.Close()
-    body, _ := ioutil.ReadAll(res.Body)
-    log.Debug(res)
-    log.Debug(body)
-    return true
-}
+//     res, err := http.DefaultClient.Do(req)
+//     if(err != nil){
+//         log.Error("send msg info fail.detail:"+err.Error())
+//     }
+//     defer res.Body.Close()
+//     // body, _ := ioutil.ReadAll(res.Body)
+//     // log.Debug(res)
+//     // log.Debug(body)
+//     return true
+// }
 
 //generate a new uid
 func (this *Actions) generateUid(hostname string) string{
@@ -233,6 +223,10 @@ func (this *Actions) Init( config *Config) bool{
     return true
 }
 
+
+/*
+HostJob
+*/
 type HostJob struct{
     config *Config
 }
@@ -250,37 +244,129 @@ func (this HostJob)Run(){
     sendHost(host_url, host)
 }
 
-type NetRelationShipJob struct{
+
+/*
+NetRelationShipJob
+*/
+// type NetRelationShipJob struct{
+//     config *Config
+// } 
+
+// func NewNetRelationShipJob (config *Config) NetRelationShipJob{
+//     netRelationShipJob := NetRelationShipJob{}
+//     netRelationShipJob.config = config
+//     return netRelationShipJob
+// }
+
+// func (this NetRelationShipJob)Run(){
+//     var vpMsg VpMsg = getVpMsg(this.config)
+//     server_http_url := this.config.Ini.GetValue("server","http_url")
+//     netrelation_url := server_http_url + this.config.Ini.GetValue("url","netrelation")
+//     sendVpMsg(netrelation_url, vpMsg)
+// }
+
+
+
+func postMsg(url string, msg string) bool {
+    println("222222222222")
+
+    payload := strings.NewReader(msg)
+    req, _ := http.NewRequest("POST", url, payload)
+    req.Header.Add("content-type", "application/json")
+    println("33333333333333")
+    res, err := http.DefaultClient.Do(req)
+    if(err != nil){
+        log.Error("send msg info fail.detail:"+err.Error())
+    }
+    println("44444444444")
+    defer res.Body.Close()
+    body, _ := ioutil.ReadAll(res.Body)
+    println(res)
+    println(body)
+    println("55555555555555555")
+    return true
+}
+
+
+/*
+NetworkflowsJob
+*/
+type Flow struct{
+    SrcIp string
+    DstIp string
+}
+
+type NetworkFlowMsg struct{
+    Uid string
+    NetworkFlows []Flow
+}
+
+func getNetworkFlowMsg(config *Config) NetworkFlowMsg{
+    var(
+        networkFlows []gopacket.Flow = tcpcatch(10, 10)
+        networkFlowMsg NetworkFlowMsg
+        flows []Flow
+    )
+    for _,netflow := range networkFlows{
+        flow := Flow{}
+        flow.SrcIp = netflow.Src().String()
+        flow.DstIp = netflow.Dst().String()
+        flows = append(flows, flow)
+    }
+    networkFlowMsg.Uid = getUuid(config.Ini.GetValue("basic", "uuid_path"))
+    networkFlowMsg.NetworkFlows = flows
+    return networkFlowMsg
+}
+
+type NetworkflowsJob struct{
     config *Config
 } 
 
-func NewNetRelationShipJob (config *Config) NetRelationShipJob{
-    netRelationShipJob := NetRelationShipJob{}
-    netRelationShipJob.config = config
-    return netRelationShipJob
+func NewNetworkflowsJob (config *Config) NetworkflowsJob{
+    networkflowsJob := NetworkflowsJob{}
+    networkflowsJob.config = config
+    return networkflowsJob
 }
 
-func (this NetRelationShipJob)Run(){
-    var vpMsg VpMsg = getVpMsg(this.config)
-    server_http_url := this.config.Ini.GetValue("server","http_url")
-    netrelation_url := server_http_url + this.config.Ini.GetValue("url","netrelation")
-    sendVpMsg(netrelation_url, vpMsg)
+func (this NetworkflowsJob)Run(){
+    nwfMsg := getNetworkFlowMsg(this.config)
+    if nwfMsg.NetworkFlows == nil{
+        log.Debug("No flow data was catched.")
+        return
+    }else{
+        server_url := this.config.Ini.GetValue("server","server_url")
+        netrelation_url := server_url + this.config.Ini.GetValue("url","netrelation")
+        msg_bt,_ := json.Marshal(nwfMsg)
+        msg_str := string(msg_bt)
+        println(msg_str)
+        postMsg(netrelation_url, msg_str)
+        println("66666666666666666666")
+    }
 }
+
 
 //start the agent
 func (this *Actions) Start(config *Config){
     println("start")
     c := cron.New()
 
+    //host meta job
     hostJob := NewHostJob(config)
     hostInfoFrequency := config.Ini.GetValue("server", "hostInfoFrequency")
     log.Info("The hostInfoFrequency is :"+ hostInfoFrequency)
     c.AddJob("@every "+ hostInfoFrequency +"s", hostJob)
 
-    netRelationShipJob := NewNetRelationShipJob(config)
-    netRelationshipFrequency := config.Ini.GetValue("server", "netRelationshipFrequency")
-    log.Info("The netRelationshipFrequency is :"+ netRelationshipFrequency)
-    c.AddJob("@every "+ netRelationshipFrequency +"s", netRelationShipJob)
+    //netRelationShipJob
+    // netRelationShipJob := NewNetRelationShipJob(config)
+    // netRelationshipFrequency := config.Ini.GetValue("server", "netRelationshipFrequency")
+    // log.Info("The netRelationshipFrequency is :"+ netRelationshipFrequency)
+    // c.AddJob("@every "+ netRelationshipFrequency +"s", netRelationShipJob)
+
+    //network flows job
+    networkflowsJob := NewNetworkflowsJob(config)
+    networkFlowFrequency :=  config.Ini.GetValue("server", "networkFlowFrequency")
+    log.Info("The networkFlowFrequency is :"+ networkFlowFrequency)
+    c.AddJob("@every "+ networkFlowFrequency +"s", networkflowsJob)
 
     c.Start()
     
