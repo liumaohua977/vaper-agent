@@ -4,12 +4,31 @@ import (
     "strconv"
     "github.com/google/gopacket"
     "github.com/google/gopacket/pcap"
-    "log"
     "time"
     "io"
     logrus "github.com/sirupsen/logrus"
+    "net"
 )
 
+// get all net interfaces
+func getAllInterfaces() []net.Interface {
+    //Get all interface info
+    interfaces,err := net.Interfaces()
+    if err != nil{
+        logrus.Fatal("Failed to get the interfaces info.")
+    }
+    for k, interf := range interfaces {
+        logrus.Debug("Interface " +strconv.Itoa(k)+":"+interf.Name)
+    }
+    return interfaces
+}
+func InterfacesToString(interfaces []net.Interface) string{
+    var result string = ""
+    for _,itf := range interfaces {
+        result += itf.Name + " , "
+    }
+    return result
+}
 
 func getPkgsByDeviceName(deviceName string, networkflows chan []gopacket.Flow, limit int, timeoutSecond int ){
     var (
@@ -30,20 +49,17 @@ func getPkgsByDeviceName(deviceName string, networkflows chan []gopacket.Flow, l
             if err == io.EOF {
                 break
             } else if err != nil {
-                logrus.Debug("No more packages." + err.Error())
+                logrus.Debug("Interface "+ deviceName + ": No more packages." + err.Error())
                 break
             }
             applicationLayer := packet.NetworkLayer()
             if applicationLayer != nil{
                 flow := applicationLayer.NetworkFlow()
                 nwfs = append(nwfs, flow)
-
-                // fmt.Println(flow.Src())
-                // fmt.Println(flow.Dst())
             }
             count += 1
             if count > limit{
-                logrus.Debug("get "+ strconv.Itoa(count) +" package.")
+                logrus.Debug("Interface "+ deviceName + ":catch "+ strconv.Itoa(count) +" package.")
                 break
             }
         }
@@ -53,30 +69,17 @@ func getPkgsByDeviceName(deviceName string, networkflows chan []gopacket.Flow, l
 
 func tcpcatch (limit int,timeoutSecond int) [] gopacket.Flow{
     var(
-        // timeoutSecond int = 10
-        // limit int = 10
         networkflowsCh chan []gopacket.Flow = make(chan []gopacket.Flow)
     )
-    devices, err := pcap.FindAllDevs()
-    if err != nil {
-        log.Fatal(err)
+    interfaces := getAllInterfaces()
+    for _,v := range interfaces {
+        go getPkgsByDeviceName(v.Name, networkflowsCh, limit, timeoutSecond)
     }
-    count := 0
-    for _, device := range devices {
-        if device.Name == "any"{
-            continue
-        }else{
-            count += 1
-            go getPkgsByDeviceName(device.Name, networkflowsCh, limit, timeoutSecond)
-        }
-    }
+
     var networkflows [] gopacket.Flow
-    for i := 0; i < count; i++ {
+    for i := 0; i < len(interfaces); i++ {
         flows := <- networkflowsCh
         networkflows = append(networkflows, flows...)
     }
     return networkflows
-    // for _,flow := range networkflows {
-    //     fmt.Println(flow)
-    // }
 }

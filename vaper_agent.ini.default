@@ -1,0 +1,53 @@
+# Vaper agent configuration 
+
+[basic]
+# the version of the client
+version = 0.0.1
+# The uuid（Universally Unique Identifier） of this host
+# agent will generate a new uuid when run: vaper_agent -a init.
+uuid_path = ./vaper_agent.uid
+
+# auto_generate_uid
+# if generate the uid auto.
+# 0 : Only try to read the uuid.txt.
+# 1 : Generate the uid auto.
+# Auto means agent will generate a uid file When there is no uuid.txt.
+auto_generate_uid = 1
+
+[log]
+# log level
+# default: info 
+# debug info warn error fatal panic
+level = error
+
+# path
+# log path
+path = ./vaper_agent.log
+
+[server]
+# server_url
+# the Vaper-server-backend address
+server_url = http://127.0.0.1:3000
+
+[performance]
+# hostInfoFrequency
+# Frequency of host info send in seconds.
+# 120 - 3600
+hostInfoFrequency = 60
+
+# networkFlowFrequency
+# Frequency of network flow info send in seconds.
+# 30 - 3600
+networkFlowFrequency = 10
+
+# packages_limit
+# How many packages you want to catch during the "networkFlowFrequency" seconds.
+# Attention: Do not set this param to a big number.More packet been catch, the agent cost more.
+# 1-600
+packages_limit = 10
+
+[api]
+# The server api list
+host_add = /host/add_or_update
+netflow_add = /netflow/add
+

@@ -20,9 +20,18 @@ func NewConfig (conf_path string) *Config{
     return config
 }
 
+func (config *Config) GetValue(key1 string, key2 string) string{
+    value := config.Ini.GetValue(key1, key2)
+    if(value == "" || value == "no value"){
+        return getDefaultSetting(key1, key2)
+    }else{
+        return value
+    }
+}
+
 func (config *Config) initLogger(){
-    level := strings.ToLower(config.Ini.GetValue("log","level"))
-    logpath := config.Ini.GetValue("log","path")
+    level := strings.ToLower(config.GetValue("log","level"))
+    logpath := config.GetValue("log","path")
     file, err := os.OpenFile(logpath, os.O_CREATE|os.O_WRONLY, 0666)
     if err == nil {
         log.SetOutput(file)
@@ -50,12 +59,12 @@ func (config *Config) initLogger(){
 }
 
 func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
+    _, err := os.Stat(path)
+    if err == nil {
+        return true, nil
+    }
+    if os.IsNotExist(err) {
+        return false, nil
+    }
+    return false, err
 }

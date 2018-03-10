@@ -1,14 +1,16 @@
 #!/bin/bash
 tag=`date "+%Y-%m-%d-%H:%M:%S"`
-tmpdir=/tmp/nginx/vaper-agent/$tag
+tmpdir=/tmp/nginx/vaper-agent/
+rm -rf $tmpdir
 mkdir -p $tmpdir
-mkdir -p $tmpdir/conf
-mkdir -p $tmpdir/logs
+
+# cp -f /home/hxn/go/src/github.com/vaper/conf/config.default.ini $tmpdir/conf/config.default.ini
 
 cp -f /home/hxn/go/src/github.com/vaper/vaper_agent $tmpdir/vaper_agent
-cp -f /home/hxn/go/src/github.com/vaper/conf/config.default.ini $tmpdir/conf/config.default.ini
-cp -f /home/hxn/go/src/github.com/vaper/conf/config.ini $tmpdir/conf/config.ini
+cp -f /home/hxn/go/src/github.com/vaper/vaper_agent.ini $tmpdir/vaper_agent.ini
 
 cd $tmpdir
-zip -r vaper.zip ./*
+tar czf vaper_agent.tar.gz ./*
+
 cd /home/hxn/go/src/github.com/vaper
+sh docker_container_install.sh

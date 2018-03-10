@@ -1,2 +1,0 @@
-time="2017-11-19T14:38:54+08:00" level=info msg="Log file is output to :./logs/vaper.log. Level is :debug"
-time="2017-11-19T14:38:54+08:00" level=error msg="test error log in main0.0.1"
