@@ -5,9 +5,6 @@ runVaper(){
   echo "container "$1":reinstall vaper_agnet"
 }
 
-
-
-
 runVaper 'es01'
 runVaper 'es02'
 runVaper 'es03'
